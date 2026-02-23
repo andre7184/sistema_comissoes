@@ -41,30 +41,34 @@ jobs:
       - name: Checkout repository (para pegar o docker-compose.yml)
         uses: actions/checkout@v3
 
-      - name: Copy docker-compose via SCP
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create Remote Subdirectory
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deployer@${{ secrets.VPS_HOST }} "mkdir -p ~/${{ secrets.DOMAIN }}/${{ secrets.SUB_DOMAIN }}"
+
+      - name: Copy docker-compose via SCP
+        run: |
           scp -i ~/.ssh/id_ed25519 docker-compose.yml deployer@${{ secrets.VPS_HOST }}:~/${{ secrets.DOMAIN }}/${{ secrets.SUB_DOMAIN }}/docker-compose.yml
 
       - name: Execute Remote Deploy
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no deployer@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_ed25519 deployer@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
             cd ~/${{ secrets.DOMAIN }}/${{ secrets.SUB_DOMAIN }}
 
-            # Cria o .env com as variáveis para o docker-compose
             echo "DOMAIN=${{ secrets.DOMAIN }}" > .env
             echo "SUB_DOMAIN=${{ secrets.SUB_DOMAIN }}" >> .env
             echo "IMAGE_BACKEND=ghcr.io/${{ github.repository }}/backend:latest" >> .env
             echo "IMAGE_FRONTEND=ghcr.io/${{ github.repository }}/frontend:latest" >> .env
 
-            # Login no registro dentro da VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            docker-compose down || true
+            
             docker-compose pull
             docker-compose up -d --remove-orphans
           EOF
