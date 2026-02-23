@@ -25,12 +25,21 @@ jobs:
 
       - name: Build and Push
         run: |
-          # Build e Push da API (Pasta: comissoes-api)
+          # Desativa as novas tecnologias de build para garantir compatibilidade com a sua VPS antiga
+          export DOCKER_BUILDKIT=0
+          export COMPOSE_DOCKER_CLI_BUILD=0
+
+          # Build da API
           docker build -t ghcr.io/${{ github.repository }}/backend:latest ./comissoes-api
-          docker push ghcr.io/${{ github.repository }}/backend:latest
           
-          # Build e Push do Front (Pasta: sistema-comissao-vendas)
+          # Build do Frontend
           docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./sistema-comissao-vendas
+
+          # Login no GitHub Packages
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Push das imagens
+          docker push ghcr.io/${{ github.repository }}/backend:latest
           docker push ghcr.io/${{ github.repository }}/frontend:latest
 
   deploy:
