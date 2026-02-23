@@ -1,0 +1,59 @@
+# Logs
+sistema-comissao-vendas/logs
+sistema-comissao-vendas/*.log
+sistema-comissao-vendas/npm-debug.log*
+sistema-comissao-vendas/yarn-debug.log*
+sistema-comissao-vendas/yarn-error.log*
+sistema-comissao-vendas/pnpm-debug.log*
+sistema-comissao-vendas/lerna-debug.log*
+
+sistema-comissao-vendas/node_modules
+sistema-comissao-vendas/dist
+sistema-comissao-vendas/dist-ssr
+sistema-comissao-vendas/*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+sistema-comissao-vendas/HELP.md
+sistema-comissao-vendas/target/
+sistema-comissao-vendas/.mvn/wrapper/maven-wrapper.jar
+sistema-comissao-vendas/!**/src/main/**/target/
+sistema-comissao-vendas/!**/src/test/**/target/
+
+### STS ###
+sistema-comissao-vendas/.apt_generated
+sistema-comissao-vendas/.classpath
+sistema-comissao-vendas/.factorypath
+sistema-comissao-vendas/.project
+sistema-comissao-vendas/.settings
+sistema-comissao-vendas/.springBeans
+sistema-comissao-vendas/.sts4-cache
+
+### IntelliJ IDEA ###
+sistema-comissao-vendas/.idea
+sistema-comissao-vendas/*.iws
+sistema-comissao-vendas/*.iml
+sistema-comissao-vendas/*.ipr
+
+### NetBeans ###
+sistema-comissao-vendas/nbproject/private/
+sistema-comissao-vendas/nbbuild/
+sistema-comissao-vendas/dist/
+sistema-comissao-vendas/nbdist/
+sistema-comissao-vendas/.nb-gradle/
+sistema-comissao-vendas/build/
+sistema-comissao-vendas/!**/src/main/**/build/
+sistema-comissao-vendas/!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
