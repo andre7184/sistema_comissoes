@@ -1,7 +1,26 @@
 services:
   # API Java
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: comissoes_db
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: password_123
+    networks:
+      - traefik
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  # API Java
   backend:
     image: ${IMAGE_BACKEND}
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/comissoes_db
+      - SPRING_DATASOURCE_USERNAME=user_admin
+      - SPRING_DATASOURCE_PASSWORD=password_123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     networks:
       - traefik
     labels:
