@@ -1,0 +1,31 @@
+services:
+  # API Java
+  backend:
+    image: ${IMAGE_BACKEND}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${SUB_DOMAIN}.${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.priority=20"
+      # O Java já tem /api no @RequestMapping, então apenas enviamos o tráfego direto:
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
+
+  # Frontend React
+  frontend:
+    image: ${IMAGE_FRONTEND}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${SUB_DOMAIN}.${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.priority=10"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+networks:
+  traefik:
+    external: true
