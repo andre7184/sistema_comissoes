@@ -1,0 +1,33 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Tente referenciar a variável que o Tailwind já cria */
+  --logo-main: var(--primary-500, #f97316); 
+  /* Adicione um fallback (#f97316 é o padrão orange-500 do Tailwind) */
+
+  --logo-slogan: var(--neutral-500,#555555);
+}
+
+/* --- Classes Globais (Fora de qualquer componente específico) --- */
+.brand-text {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+@layer components {
+  
+  .input-form {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+  }
+  
+  .th-cell {
+    @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+  }
+  
+  .td-cell {
+    /* --- CORREÇÃO AQUI --- */
+    @apply px-4 py-3 whitespace-nowrap text-sm text-gray-700;
+  }
+}

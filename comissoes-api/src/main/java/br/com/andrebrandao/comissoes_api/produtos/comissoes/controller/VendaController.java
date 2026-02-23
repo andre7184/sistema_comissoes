@@ -1,0 +1,114 @@
+// src/main/java/br/com.andrebrandao.comissoes_api/produtos/comissoes/controller/VendaController.java
+package br.com.andrebrandao.comissoes_api.produtos.comissoes.controller;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.dto.VendaRequestDTO;
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.model.Venda;
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.model.VendaStatus;
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.service.VendaService;
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.dto.VendaResponseDTO;
+import br.com.andrebrandao.comissoes_api.produtos.comissoes.dto.VendaUpdateRequestDTO;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Controller REST para o ADMIN da empresa-cliente gerenciar as Vendas.
+ * Protegido para ROLE_ADMIN e requer o módulo COMISSOES_CORE ativo.
+ */
+@RestController
+@RequestMapping("/api/vendas") // URL base para vendas
+@RequiredArgsConstructor
+// --- ANOTAÇÃO @PreAuthorize ATUALIZADA ---
+// Verifica o ROLE_ADMIN e chama o serviço 'customSecurityService' para verificar o módulo
+// Use a chave exata do seu módulo (COMISSAO_CORE ou COMISSOES_CORE)
+@PreAuthorize("hasAuthority('ROLE_ADMIN') and @customSecurityService.hasModulo(authentication, 'COMISSAO_CORE')") 
+public class VendaController {
+
+    private final VendaService vendaService; // Injeta o serviço de lógica
+
+    /**
+     * Endpoint para LANÇAR uma nova venda para um vendedor.
+     * Mapeado para: POST /api/vendas
+     *
+     * @param dto O JSON com vendedorId e valorVenda (VendaRequestDTO).
+     * @return A entidade Venda criada (com comissão calculada e data).
+     */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Venda lancarNovaVenda(@Valid @RequestBody VendaRequestDTO dto) {
+        return vendaService.lancar(dto);
+    }
+
+    /**
+     * Endpoint para ATUALIZAR uma venda existente.
+     * Mapeado para: PUT /api/vendas/{id}
+     *
+     * @param id O ID da venda a ser atualizada.
+     * @param dto O DTO com os dados de atualização.
+     * @return O DTO VendaResponseDTO da venda atualizada.
+     */
+    @PutMapping("/{id}") // <-- NOVO ENDPOINT
+    public VendaResponseDTO atualizarVenda(
+        @PathVariable("id") Long id, 
+        @Valid @RequestBody VendaUpdateRequestDTO dto) {
+        
+        return vendaService.atualizarVenda(id, dto);
+    }
+
+    /**
+     * Endpoint para LISTAR TODAS as vendas da empresa do ADMIN logado.
+     * Mapeado para: GET /api/vendas
+     */
+    @GetMapping
+    public List<VendaResponseDTO> listarVendas(
+        // Adiciona um parâmetro opcional (required = false) para receber o status.
+        // O Spring fará a conversão da string (ex: "CONFIRMADA,PENDENTE") para List<VendaStatus>.
+        @RequestParam(required = false) List<VendaStatus> status) { 
+        
+        // Passa o filtro opcional para o Service
+        return vendaService.listar(status); 
+    }
+
+    // ========================================================================
+    // MÉTODOS DE GERENCIAMENTO (APROVAR/CANCELAR)
+    // ========================================================================
+
+    /**
+     * Endpoint para o ADMIN APROVAR uma venda PENDENTE.
+     * Mapeado para: PUT /api/vendas/{id}/aprovar
+     *
+     * @param id O ID da Venda (vindo da URL) a ser aprovada.
+     * @return A Venda atualizada com o status CONFIRMADA.
+     */
+    @PutMapping("/{id}/aprovar") // 3. MÉTODO NOVO (Aprovar)
+    public Venda aprovarVenda(@PathVariable Long id) {
+        // 4. @PathVariable pega o "id" da URL
+        return vendaService.aprovarVenda(id);
+    }
+
+    /**
+     * Endpoint para o ADMIN CANCELAR uma venda (Pendente ou Confirmada).
+     * Mapeado para: PUT /api/vendas/{id}/cancelar
+     *
+     * @param id O ID da Venda (vindo da URL) a ser cancelada.
+     * @return A Venda atualizada com o status CANCELADA.
+     */
+    @PutMapping("/{id}/cancelar") // 5. MÉTODO NOVO (Cancelar)
+    public Venda cancelarVenda(@PathVariable Long id) {
+        return vendaService.cancelarVenda(id);
+    }
+}

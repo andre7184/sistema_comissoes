@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 5 350 100" width="350" height="100">
+  <g transform="translate(20, 5) scale(0.20)">
+    
+    <g id="icon">
+      <polygon
+        points="256,32 448,144 448,368 256,480 64,368 64,144"
+        fill="none"
+        stroke="var(--logo-main)"
+        stroke-width="16"
+        stroke-linejoin="round"
+      />
+
+      <polygon
+        points="256,122 371,189 371,323 256,390 141,323 141,189"
+        fill="none"
+        stroke="var(--logo-main)"
+        stroke-width="8"
+        stroke-linejoin="round"
+      />
+
+      <line x1="141" y1="189" x2="256" y2="256" stroke="var(--logo-main)" stroke-width="8" />
+      <line x1="371" y1="189" x2="256" y2="256" stroke="var(--logo-main)" stroke-width="8" />
+      <line x1="256" y1="390" x2="256" y2="256" stroke="var(--logo-main)" stroke-width="8" />
+
+      <circle cx="256" cy="122" r="18" fill="var(--logo-main)" />
+      <circle cx="371" cy="189" r="18" fill="var(--logo-main)" />
+      <circle cx="371" cy="323" r="18" fill="var(--logo-main)" />
+      <circle cx="256" cy="390" r="18" fill="var(--logo-main)" />
+      <circle cx="141" cy="323" r="18" fill="var(--logo-main)" />
+      <circle cx="141" cy="189" r="18" fill="var(--logo-main)" />
+      <circle cx="256" cy="256" r="18" fill="var(--logo-main)" />
+    </g>
+
+    <g id="text" transform="translate(520, 0)">
+      <text 
+        x="-20" 
+        y="300" 
+        font-family="sans-serif" 
+        font-size="280" 
+        font-weight="bold" 
+        fill="var(--logo-main)"
+      >
+        Neurono
+      </text>
+
+      <text 
+        x="0" 
+        y="400" 
+        font-family="sans-serif" 
+        font-size="100" 
+        font-weight="normal" 
+        fill="var(--logo-slogan)"
+        letter-spacing="2"
+      >
+        Calculos de Comissões
+      </text>
+    </g>
+  </g>
+</svg>

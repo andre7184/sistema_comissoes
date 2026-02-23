@@ -1,0 +1,164 @@
+name: Deploy Aplicativo Java (comissoes-api)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout do Código
+        uses: actions/checkout@v3
+        with:
+          # Garante que ele pega o código da branch selecionada no 'workflow_dispatch' (ex: develop)
+          ref: ${{ github.event.ref }}
+
+      - name: 2. Login no Docker Hub
+        uses: docker/login-action@v2
+        with:
+          # CORRIGIDO: Removido o 'K' extra
+          username: ${{ secrets.DOCKERHUB_USERNAME }} 
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 3. Construir e Enviar Imagem Docker
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          # CORRIGIDO: Removido o 'K' extra
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.JAVA_PROJECT_REPO_NAME }}:latest 
+
+      - name: 4. Conectar no Servidor, Configurar Nginx e Fazer Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }} # 'deployer'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Define e entra no diretório do projeto no VPS
+            PROJECT_DIR="${{ secrets.JAVA_PROJECT_DIR }}"
+            mkdir -p $PROJECT_DIR
+            cd $PROJECT_DIR
+
+            # --- Cria o docker-compose.yml ---
+            cat << EOF > docker-compose.yml
+            version: '3.8'
+            services:
+              db_java:
+                image: postgres:15
+                container_name: ${{ secrets.JAVA_PROJECT_REPO_NAME }}_db
+                restart: unless-stopped
+                environment:
+                  POSTGRES_DB: \${DB_NAME}
+                  POSTGRES_USER: \${DB_USER}
+                  POSTGRES_PASSWORD: \${DB_PASSWORD}
+                volumes:
+                  - postgres_data_${{ secrets.JAVA_PROJECT_REPO_NAME }}:/var/lib/postgresql/data
+                networks:
+                  - java-net
+              
+              app_java:
+                # CORRIGIDO: Removido o 'K' extra
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.JAVA_PROJECT_REPO_NAME }}:latest 
+                container_name: ${{ secrets.JAVA_PROJECT_REPO_NAME }}_web
+                restart: unless-stopped
+                ports:
+                  - "127.0.0.1:${{ secrets.JAVA_APP_HOST_PORT }}:${{ secrets.JAVA_APP_INTERNAL_PORT }}"
+                env_file: .env
+                depends_on:
+                  - db_java
+                networks:
+                  - java-net
+            
+            volumes:
+              postgres_data_${{ secrets.JAVA_PROJECT_REPO_NAME }}:
+
+            networks:
+              java-net:
+            EOF
+            
+            # --- Cria o arquivo .env ---
+            echo "SPRING_DATASOURCE_URL=jdbc:postgresql://db_java:5432/${{ secrets.DB_NAME }}" > .env
+            echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USER }}" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update" >> .env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+
+            # --- Cria a configuração do Nginx ---
+            cat << EOF > nginx.conf
+            server {
+                listen 80;
+                server_name ${{ secrets.JAVA_PROJECT_DOMAIN }};
+
+                location / {
+                    proxy_pass http://127.0.0.1:${{ secrets.JAVA_APP_HOST_PORT }};
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            EOF
+            
+            # --- Bloco de Administração do Servidor (com caminhos absolutos) ---
+            
+            NGINX_CONF_FILE="/etc/nginx/sites-available/${{ secrets.JAVA_PROJECT_DOMAIN }}"
+            NGINX_LINK_FILE="/etc/nginx/sites-enabled/${{ secrets.JAVA_PROJECT_DOMAIN }}"
+
+            echo "Movendo configuração do Nginx..."
+            sudo /usr/bin/mv $PROJECT_DIR/nginx.conf $NGINX_CONF_FILE
+            
+            echo "Ativando site no Nginx..."
+            sudo /usr/bin/ln -sf $NGINX_CONF_FILE $NGINX_LINK_FILE
+            
+            echo "Testando configuração do Nginx..."
+            sudo /usr/sbin/nginx -t
+            if [ \$? -ne 0 ]; then
+                echo "Erro na configuração do Nginx!"
+                exit 1
+            fi
+            
+            # --- Executa o Deploy ---
+            
+            echo "Parando contêineres antigos..."
+            docker compose down --remove-orphans
+            
+            # NOVO: Remove explicitamente contêineres antigos com o mesmo nome para evitar conflito
+            # echo "Removendo contêineres em conflito (se existirem)..."
+            # docker rm -f ${{ secrets.JAVA_PROJECT_REPO_NAME }}_db || true
+            # docker rm -f ${{ secrets.JAVA_PROJECT_REPO_NAME }}_web || true
+              
+            echo "Baixando nova imagem..."
+            # CORRIGIDO: Removido o 'K' extra
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.JAVA_PROJECT_REPO_NAME }}:latest 
+            
+            echo "Iniciando contêineres..."
+            docker compose up -d
+
+            # Espera inteligente para o PostgreSQL
+            # Espera inteligente para o PostgreSQL
+            echo "Aguardando o banco de dados (PostgreSQL) ficar pronto..."
+            timeout=90
+            while ! docker compose exec db_java pg_isready -U "${{ secrets.DB_USER }}" -h localhost; do
+              sleep 3
+              timeout=$((timeout - 3))
+              if [ $timeout -le 0 ]; then
+                echo "Erro: Timeout esperando pelo banco de dados."
+                docker compose logs db_java
+                exit 1
+              fi
+            done
+            echo "✅ Banco de dados está pronto!"
+            echo "✅ Banco de dados está pronto!"
+            
+            echo "Recarregando Nginx..."
+            sudo /usr/bin/systemctl reload nginx
+            
+            echo "✅ Deploy concluído com sucesso!, agora disponível em: https://${{ secrets.JAVA_PROJECT_DOMAIN }}"
+            echo "Seu app está disponível em: http://${{ secrets.JAVA_PROJECT_DOMAIN }}"
