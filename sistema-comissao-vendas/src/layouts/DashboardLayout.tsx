@@ -9,7 +9,7 @@ import { useTheme } from '../contexts/ThemeContext'; // <-- Importe o Hook
 import NeuronoLogo from '../assets/images/neurono-logo.svg?react';
 
 // Ícones
-import { Menu, X, User, LogOut, KeyRound, ChevronDown, Building, Moon, Sun } from 'lucide-react';
+import { Menu, X, User, LogOut, KeyRound, ChevronDown, Moon, Sun } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { role, permissoes, userNome, logout } = useContext(AuthContext);

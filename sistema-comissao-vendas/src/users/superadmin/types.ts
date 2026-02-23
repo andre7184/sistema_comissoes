@@ -1,5 +1,5 @@
 // src/users/superadmin/types.ts
-
+import type { ReactNode } from 'react';
 /**
  * Define os status possíveis para um Módulo, conforme a API
  */
