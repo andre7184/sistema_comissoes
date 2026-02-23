@@ -1,0 +1,70 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-push:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        run: |
+          # Build e Push da API (Pasta: comissoes-api)
+          docker build -t ghcr.io/${{ github.repository }}/backend:latest ./comissoes-api
+          docker push ghcr.io/${{ github.repository }}/backend:latest
+          
+          # Build e Push do Front (Pasta: sistema-comissao-vendas)
+          docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./sistema-comissao-vendas
+          docker push ghcr.io/${{ github.repository }}/frontend:latest
+
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (para pegar o docker-compose.yml)
+        uses: actions/checkout@v3
+
+      - name: Copy docker-compose via SCP
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/id_ed25519 docker-compose.yml deployer@${{ secrets.VPS_HOST }}:~/${{ secrets.DOMAIN }}/${{ secrets.SUB_DOMAIN }}/docker-compose.yml
+
+      - name: Execute Remote Deploy
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no deployer@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+            cd ~/${{ secrets.DOMAIN }}/${{ secrets.SUB_DOMAIN }}
+
+            # Cria o .env com as variáveis para o docker-compose
+            echo "DOMAIN=${{ secrets.DOMAIN }}" > .env
+            echo "SUB_DOMAIN=${{ secrets.SUB_DOMAIN }}" >> .env
+            echo "IMAGE_BACKEND=ghcr.io/${{ github.repository }}/backend:latest" >> .env
+            echo "IMAGE_FRONTEND=ghcr.io/${{ github.repository }}/frontend:latest" >> .env
+
+            # Login no registro dentro da VPS
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            docker-compose down || true
+            docker-compose pull
+            docker-compose up -d --remove-orphans
+          EOF
