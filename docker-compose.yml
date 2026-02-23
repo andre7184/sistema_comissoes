@@ -9,7 +9,7 @@ services:
       - "traefik.http.routers.backend.rule=Host(`${SUB_DOMAIN}.${DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls=true"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.backend.priority=20"
       # O Java já tem /api no @RequestMapping, então apenas enviamos o tráfego direto:
       - "traefik.http.services.backend.loadbalancer.server.port=8080"
